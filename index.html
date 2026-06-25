@@ -545,15 +545,13 @@ footer .legal{margin-top:14px;font-size:.78rem;line-height:1.6;max-width:620px;m
         <li><span class="ck">✓</span> Mini-guía de berrinches por edad</li>
         <li><span class="ck">✓</span> Descarga inmediata, lo leés desde el celular</li>
       </ul>
-      <form id="form-compra" action="https://formspree.io/f/xdarezlr" method="POST">
-        <input type="hidden" name="_next" value="https://mpago.li/29tjw3m">
-        <input type="hidden" name="_subject" value="Nueva compradora — Mamá en Calma">
+      <div id="form-compra">
         <div class="email-row">
-          <input type="email" name="email" id="email-input" placeholder="Tu email para recibir el manual" required autocomplete="email">
-          <button type="submit" class="btn btn-primary">Comprar ahora →</button>
+          <input type="email" id="email-input" placeholder="Tu email para recibir el manual" autocomplete="email">
+          <button id="btn-comprar" class="btn btn-primary">Comprar ahora →</button>
         </div>
         <p class="email-note">📩 Ingresá tu email: ahí te enviamos el manual una vez confirmado el pago.</p>
-      </form>
+      </div>
       <div class="pay-row"><span class="lock">🔒</span> Pago seguro con <span class="mp">Mercado Pago</span></div>
     </div>
   </div>
@@ -655,17 +653,37 @@ footer .legal{margin-top:14px;font-size:.78rem;line-height:1.6;max-width:620px;m
     });
   });
 
-  // Form de compra — validación y UX
+  // Form de compra — fetch en segundo plano + redirect directo a MP
   safe(function(){
-    var form=document.getElementById('form-compra');
-    if(!form)return;
-    form.addEventListener('submit',function(e){
-      var email=document.getElementById('email-input').value.trim();
-      if(!email){e.preventDefault();document.getElementById('email-input').focus();return;}
-      var btn=form.querySelector('button[type="submit"]');
+    var btn=document.getElementById('btn-comprar');
+    var input=document.getElementById('email-input');
+    if(!btn||!input)return;
+    btn.addEventListener('click',function(){
+      var email=input.value.trim();
+      if(!email||!email.includes('@')){
+        input.focus();
+        input.style.borderColor='var(--accent)';
+        input.placeholder='Necesitamos tu email para enviarte el manual';
+        return;
+      }
+      // Deshabilitar botón inmediatamente
       btn.textContent='Redirigiendo a Mercado Pago…';
-      btn.style.opacity='.7';
+      btn.style.opacity='.75';
       btn.style.pointerEvents='none';
+      input.style.pointerEvents='none';
+      // Enviar email a Formspree en segundo plano (sin esperar respuesta)
+      var data=new FormData();
+      data.append('email', email);
+      data.append('_subject', 'Nueva compradora — Mamá en Calma');
+      fetch('https://formspree.io/f/xdarezlr', {
+        method:'POST',
+        body:data,
+        headers:{'Accept':'application/json'}
+      }).catch(function(){/* silencioso si falla */});
+      // Redirigir a MP después de 800ms (da tiempo al fetch sin bloquear)
+      setTimeout(function(){
+        window.location.href='https://mpago.li/29tjw3m';
+      }, 800);
     });
   });
 })();
